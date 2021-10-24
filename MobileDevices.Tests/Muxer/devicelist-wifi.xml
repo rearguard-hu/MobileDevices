@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DeviceList</key>
+	<array>
+		<dict>
+			<key>DeviceID</key>
+			<integer>2</integer>
+			<key>MessageType</key>
+			<string>Attached</string>
+			<key>Properties</key>
+			<dict>
+				<key>ConnectionType</key>
+				<string>Network</string>
+				<key>DeviceID</key>
+				<integer>2</integer>
+				<key>EscapedFullServiceName</key>
+				<string>aa:aa:aa:aa:aa:aa@aaaa::aaaa:aaa:aaaa:aaaa._apple-mobdev2._tcp.local.</string>
+				<key>InterfaceIndex</key>
+				<integer>39</integer>
+				<key>NetworkAddress</key>
+				<data>
+				AgAAAMCoCu8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+				AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+				AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+				AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+				</data>
+				<key>SerialNumber</key>
+				<string>cccccccccccccccccccccccccccccccccccccccc</string>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

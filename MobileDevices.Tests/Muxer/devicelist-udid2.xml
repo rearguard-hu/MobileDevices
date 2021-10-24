@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>DeviceList</key>
+	<array>
+		<dict>
+			<key>MessageType</key>
+			<string>Attached</string>
+			<key>DeviceID</key>
+			<integer>5</integer>
+			<key>Properties</key>
+			<dict>
+				<key>ConnectionSpeed</key>
+				<integer>480000000</integer>
+				<key>ConnectionType</key>
+				<string>USB</string>
+				<key>DeviceID</key>
+				<integer>5</integer>
+				<key>LocationID</key>
+				<integer>65542</integer>
+				<key>ProductID</key>
+				<integer>4776</integer>
+				<key>SerialNumber</key>
+				<string>000000000000000000000000</string>
+			</dict>
+		</dict>
+	</array>
+</dict>
+</plist>

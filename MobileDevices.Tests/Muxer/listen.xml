@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BundleID</key>
+	<string>com.apple.iTunes</string>
+	<key>ClientVersionString</key>
+	<string>usbmuxd-374.70</string>
+	<key>ConnType</key>
+	<integer>1</integer>
+	<key>MessageType</key>
+	<string>Listen</string>
+	<key>ProgName</key>
+	<string>iTunes</string>
+	<key>kLibUSBMuxVersion</key>
+	<integer>3</integer>
+</dict>
+</plist>
