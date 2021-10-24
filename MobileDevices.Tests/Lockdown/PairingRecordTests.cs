@@ -158,7 +158,7 @@ namespace MobileDevices.Tests.Lockdown
 
             var pairingRecord = PairingRecord.Read(dict);
 
-            Assert.Equal("HostId: 01234567-012345678901234567, SystemBUID: 01234567890123456789012345, Host certificate: EE63391AA1FBA937E2784CC7DAAA9C22BA223B54 (expires: 2026-11-28 19:20:17Z)", pairingRecord.ToString());
+            Assert.Equal("HostId: 01234567-012345678901234567, SystemBUID: 01234567890123456789012345, Host certificate: EE63391AA1FBA937E2784CC7DAAA9C22BA223B54 (expires: 2026-11-28 11:20:17Z)", pairingRecord.ToString());
         }
     }
 }
