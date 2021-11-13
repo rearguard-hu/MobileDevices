@@ -57,8 +57,8 @@ cancellationToken).ConfigureAwait(false);
 
 非常欢迎您的指导与参与！
 ## Links
-* Repository (Mirror): https://github.com/hu766514308/MobileDevices.git
-* Issue Tracker: https://https://github.com/hu766514308/MobileDevices/issues
+* Repository (Mirror): https://github.com/rearguard-hu/MobileDevices.git
+* Issue Tracker: https://github.com/rearguard-hu/MobileDevices/issues
 ## Credits
 Apple、iPhone、iPad、iPod、iPod Touch、Apple TV、Apple Watch、Mac、iOS、iPadOS、tvOS、watchOS 和 macOS 是 Apple Inc. 的商标。
 
