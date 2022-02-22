@@ -45,7 +45,7 @@ namespace MobileDevices.Tests.AfcServices
         public async Task ReadDirectoryAsyncTest_Async()
         {
 
-            var result = await File.ReadAllBytesAsync("iOS/AfcServices/afcData.bin");
+            var result = await File.ReadAllBytesAsync("AfcServices/afcData.bin");
 
             var (packet, packetHeader) = GetBytes(result);
 

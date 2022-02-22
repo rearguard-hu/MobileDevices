@@ -111,6 +111,11 @@ namespace MobileDevices.iOS.Services
                 throw new ArgumentNullException(nameof(message));
             }
 
+            if (Logger.IsEnabled(LogLevel.Trace))
+            {
+                Logger.LogTrace("Sending data:\r\n{data}", message);
+            }
+
             var messageLength = Encoding.UTF8.GetByteCount(message);
             var packetLength = 4 + messageLength;
 

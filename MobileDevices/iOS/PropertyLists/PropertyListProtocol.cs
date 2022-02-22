@@ -110,6 +110,7 @@ namespace MobileDevices.iOS.PropertyLists
             Verify.NotDisposed(this);
 
             using var owner = await ReadPipeDataAsync(cancellationToken);
+            if (owner.ValidLength<=0) return null;
             var dict = (NSDictionary)PropertyListParser.Parse(owner.Memory.Span[..owner.ValidLength]);
 
             if (Logger.IsEnabled(LogLevel.Trace))
