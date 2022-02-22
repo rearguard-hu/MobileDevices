@@ -17,7 +17,7 @@ namespace MobileDevices.iOS.AfcServices
     /// </summary>
     public class AfcProtocol : ServiceProtocol
     {
-        private ulong _packetNum = 1;
+        private ulong packetNum = 1;
 
         /// <summary>
         /// PacketHeader CFA6LPAA
@@ -86,11 +86,11 @@ namespace MobileDevices.iOS.AfcServices
             {
                 Magic = PacketHeaderValue,
                 EntireLength = (ulong)(HeaderLen + dataLength + payloadLength),
-                PacketNum = _packetNum,
+                PacketNum = packetNum,
                 ThisLength = (ulong)(HeaderLen + dataLength),
                 Operation = afcRequest.AfcOperation
             };
-            Interlocked.Increment(ref _packetNum);
+            Interlocked.Increment(ref packetNum);
             var len = HeaderLen + dataLength + payloadLength;
             var packet = Output.GetMemory(len);
             MemoryMarshal.Write(packet.Span, ref packetHeard);
