@@ -3,10 +3,13 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.IO.Pipelines;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft;
 using Microsoft.Extensions.Logging;
+using MobileDevices.Buffers;
+using MobileDevices.iOS.AfcServices;
 
 namespace MobileDevices.iOS.Services
 {
@@ -14,119 +17,173 @@ namespace MobileDevices.iOS.Services
     public partial class ServiceProtocol : IAsyncDisposable, IDisposableObservable
     {
 
-        private readonly Stream rawStream;
+        private readonly Stream _rawStream;
 
-        private readonly bool ownsStream;
+        private readonly bool _ownsStream;
 
         protected readonly MemoryPool<byte> MemoryPool = MemoryPool<byte>.Shared;
 
         protected readonly ILogger Logger;
 
-        private Stream stream;
+        private Stream _stream;
 
-        public virtual Stream Stream
-        {
-            get => stream;
-            set
-            {
-                stream = value;
+        public virtual Stream Stream {
+            get => _stream;
+            set {
+                _stream = value;
 
-                pipeReader = null;
-                pipeWriter = null;
+                _pipeReader = null;
+                _pipeWriter = null;
             }
         }
 
-        private PipeWriter pipeWriter;
+        private PipeWriter _pipeWriter;
 
-        private PipeReader pipeReader;
+        private PipeReader _pipeReader;
 
         /// <summary>
         /// A PipeWriter adapted over the given stream.
         /// </summary>
-        public PipeWriter Output
-        {
-            get
-            {
-                if (pipeWriter == null)
-                {
-                    pipeWriter = PipeWriter.Create(Stream, new StreamPipeWriterOptions(leaveOpen: true));
-                }
-                return pipeWriter;
+        public PipeWriter Output {
+            get {
+                if (_pipeWriter is null)
+                    _pipeWriter = PipeWriter.Create(Stream, new StreamPipeWriterOptions(leaveOpen: true));
+
+                return _pipeWriter;
             }
         }
 
-        public PipeReader Input
-        {
-            get
-            {
-                if (pipeReader == null)
-                {
-                    pipeReader = PipeReader.Create(Stream, new StreamPipeReaderOptions(leaveOpen: true));
-                }
-                return pipeReader;
+        public PipeReader Input {
+            get {
+                if (_pipeReader is null)
+                    _pipeReader = PipeReader.Create(Stream, new StreamPipeReaderOptions(leaveOpen: true));
+
+                return _pipeReader;
             }
         }
-
 
         /// <inheritdoc/>
         public bool IsDisposed { get; private set; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Stream.ServiceProtocol"/> class.
+        /// Initializes a new instance of the <see cref="ServiceProtocol"/> class.
         /// </summary>
         /// <param name="stream">
         /// A <see cref="Stream"/> which represents the connection to the muxer.
         /// </param>
         /// <param name="ownsStream">
-        /// A value indicating whether this <see cref="iOS.Services.ServiceProtocol"/> instance owns the <paramref name="stream"/> or not.
+        /// A value indicating whether this <see cref="ServiceProtocol"/> instance owns the <paramref name="stream"/> or not.
         /// </param>
         /// <param name="logger">
         /// A <see cref="iOS"/> which can be used when logging.
         /// </param>
         public ServiceProtocol(Stream stream, bool ownsStream, ILogger logger)
         {
-            this.rawStream = stream ?? throw new ArgumentNullException(nameof(stream));
-            this.stream = this.rawStream;
-            this.ownsStream = ownsStream;
-            this.Logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _rawStream = stream ?? throw new ArgumentNullException(nameof(stream));
+            _stream = _rawStream;
+            _ownsStream = ownsStream;
+            Logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public ServiceProtocol()
         {
-            
+
         }
 
+        /// <summary>
+        /// Asynchronously sends a message to the remote client.
+        /// </summary>
+        /// <param name="message">
+        /// The message to send.
+        /// </param>
+        /// <param name="token">
+        /// A <see cref="CancellationToken"/> which can be used to cancel the asynchronous operation.
+        /// </param>
+        /// <returns>
+        /// A <see cref="Task"/> which represents the asynchronous operation.
+        /// </returns>
+        public virtual async Task WriteMessageAsync(string message, CancellationToken token)
+        {
+            Verify.NotDisposed(this);
+
+            if (string.IsNullOrEmpty(message))
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            var messageLength = Encoding.UTF8.GetByteCount(message);
+            var packetLength = 4 + messageLength;
+
+            var memory = Output.GetMemory(packetLength);
+
+            // Construct the entire packet:
+            // [length] (4 bytes)
+            // [UTF-8 XML-encoded property list message] (N bytes)
+            BinaryPrimitives.WriteInt32BigEndian(memory.Span, messageLength);
+            Encoding.UTF8.GetBytes(message, memory.Span.Slice(4));
+            Output.Advance(packetLength);
+            await Output.FlushAsync(token);
+        }
+
+        /// <summary>
+        /// Parsing packet
+        /// </summary>
+        /// <param name="buffer"></param>
+        /// <param name="line"></param>
+        /// <returns></returns>
         protected virtual bool TryParsePacket(ref ReadOnlySequence<byte> buffer, out ReadOnlySequence<byte> line)
         {
-            throw new NotImplementedException();
+            if (buffer.Length < 4)
+            {
+                line = ReadOnlySequence<byte>.Empty;
+                return false;
+            }
+
+            var lengthSlice = buffer.Slice(buffer.Start, 4);
+
+            var length = ReadInt32BigEndian(lengthSlice);
+
+            //判断 流的长度是不是够
+            if (length > buffer.Length - 4)
+            {
+                line = ReadOnlySequence<byte>.Empty;
+                return false;
+            }
+
+            line = buffer.Slice(lengthSlice.End, length);
+            buffer = buffer.Slice(line.End);
+
+            return true;
         }
 
-        protected virtual Task<bool> PacketProcessAsync(Memory<byte> writer, ReadOnlySequence<byte> packet, out int writerLength, CancellationToken token)
+        /// <summary>
+        /// 数据包处理
+        /// </summary>
+        /// <param name="writer"></param>
+        /// <param name="packet"></param>
+        /// <param name="writerLength"></param>
+        /// <returns></returns>
+        protected virtual bool PacketProcess(Memory<byte> writer, ReadOnlySequence<byte> packet, out int writerLength)
         {
             packet.CopyTo(writer.Span);
             writerLength = (int)packet.Length;
-            return Task.FromResult(true);
+            return true;
         }
 
-        protected virtual async Task<ReadOnlyMemory<byte>> ReadPipeDataAsync(CancellationToken token)
+        protected virtual async Task<MemoryOwner> ReadPipeDataAsync(CancellationToken token)
         {
-            var onlyMemory = ReadOnlyMemory<byte>.Empty;
+            IMemoryOwner<byte> owner = default;
+            var readLength = 0;
             while (!token.IsCancellationRequested)
             {
-                var result = await Input.ReadAsync(token);
-                var buffer = result.Buffer;
-
-                var readLength = 0;
-                var proc = false;
-                using var memory = MemoryPool.Rent((int)buffer.Length);
                 try
                 {
+                    var result = await Input.ReadAsync(token);
+                    var buffer = result.Buffer;
                     while (TryParsePacket(ref buffer, out var packet))
                     {
-                        var rt = await PacketProcessAsync(memory.Memory, packet, out readLength, token);
-
-                        readLength = (int)packet.Length;
-                        proc = true;
+                        owner = MemoryPool.Rent((int)packet.Length);
+                        var rt = PacketProcess(owner.Memory, packet, out readLength);
 
                         if (rt) break;
                     }
@@ -135,18 +192,21 @@ namespace MobileDevices.iOS.Services
                     if (result.IsCompleted)
                         break;
 
-                    if (buffer.Length <= 0|| proc)
+                    if (buffer.Length <= 0 || readLength > 0)
                         break;
 
                 }
-                finally
+                catch (Exception ex)
                 {
-                    onlyMemory = memory.Memory[..readLength];
+                    Logger.LogError(ex, ex.Message);
+                    break;
                 }
             }
-            return onlyMemory;
-        }
 
+            return owner == default
+                ? new MemoryOwner(MemoryPool.Rent(), readLength)
+                : new MemoryOwner(owner, readLength);
+        }
 
         /// <summary>
         /// Read the 32bit Big Endian length
@@ -225,33 +285,33 @@ namespace MobileDevices.iOS.Services
         /// <inheritdoc/>
         public virtual async ValueTask DisposeAsync()
         {
-            if (this.stream != this.rawStream)
+            if (_stream != _rawStream)
             {
-                await this.stream.DisposeAsync().ConfigureAwait(false);
+                await _stream.DisposeAsync().ConfigureAwait(false);
             }
 
-            if (this.rawStream != null)
+            if (_rawStream != null)
             {
-                await this.rawStream.DisposeAsync().ConfigureAwait(false);
+                await _rawStream.DisposeAsync().ConfigureAwait(false);
             }
 
-            this.IsDisposed = true;
+            IsDisposed = true;
         }
 
         /// <inheritdoc/>
         public virtual void Dispose()
         {
-            if (this.stream != this.rawStream)
+            if (_stream != _rawStream)
             {
-                this.stream.Dispose();
+                _stream.Dispose();
             }
 
-            if (this.stream != null)
+            if (_stream != null)
             {
-                this.rawStream.Dispose();
+                _rawStream.Dispose();
             }
 
-            this.IsDisposed = true;
+            IsDisposed = true;
         }
 
 

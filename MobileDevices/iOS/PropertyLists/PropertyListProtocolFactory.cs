@@ -1,7 +1,6 @@
 ﻿using Microsoft.Extensions.Logging;
 using System.IO;
 using MobileDevices.iOS.Services;
-using ServiceProtocol = MobileDevices.iOS.Services.ServiceProtocol;
 
 namespace MobileDevices.iOS.PropertyLists
 {

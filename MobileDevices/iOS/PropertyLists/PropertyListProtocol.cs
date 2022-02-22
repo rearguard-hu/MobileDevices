@@ -1,19 +1,16 @@
 ﻿using Claunia.PropertyList;
 using Microsoft;
 using Microsoft.Extensions.Logging;
-using Nerdbank.Streams;
 using System;
-using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using ServiceProtocol = MobileDevices.iOS.Services.ServiceProtocol;
+using MobileDevices.iOS.Services;
 
 namespace MobileDevices.iOS.PropertyLists
 {
-
     /// <summary>
     /// The <see cref="PropertyListProtocol"/> supports reading and writing messages in property list format.
     /// </summary>
@@ -47,14 +44,6 @@ namespace MobileDevices.iOS.PropertyLists
 
         }
 
-        public virtual async Task<NSDictionary> RequestAsync(NSDictionary message, CancellationToken cancellationToken)
-        {
-
-            await this.WriteMessageAsync(message, cancellationToken);
-
-            return await this.ReadMessageAsync(cancellationToken);
-        }
-
 
         /// <summary>
         /// Asynchronously sends a message to the remote lockdown client.
@@ -77,8 +66,9 @@ namespace MobileDevices.iOS.PropertyLists
                 throw new ArgumentNullException(nameof(message));
             }
 
-            return this.WriteMessageAsync(message.ToDictionary(), cancellationToken);
+            return WriteMessageAsync(message.ToDictionary(), cancellationToken);
         }
+
 
         /// <summary>
         /// Asynchronously sends a message to the remote lockdown client.
@@ -92,7 +82,7 @@ namespace MobileDevices.iOS.PropertyLists
         /// <returns>
         /// A <see cref="Task"/> which represents the asynchronous operation.
         /// </returns>
-        public virtual async Task WriteMessageAsync(NSDictionary message, CancellationToken cancellationToken)
+        public virtual Task WriteMessageAsync(NSDictionary message, CancellationToken cancellationToken)
         {
             Verify.NotDisposed(this);
 
@@ -101,31 +91,8 @@ namespace MobileDevices.iOS.PropertyLists
                 throw new ArgumentNullException(nameof(message));
             }
 
-            // Serialize the underlying message so we can calculate the packet size
-            var xml = message.ToXmlPropertyList();
-
-            if (this.Logger.IsEnabled(LogLevel.Trace))
-            {
-                this.Logger.LogTrace("Sending data:\r\n{data}", xml);
-            }
-
-            int messageLength = Encoding.UTF8.GetByteCount(xml);
-
-            var packetLength = 4 + messageLength;
-
-            using (var packet = this.MemoryPool.Rent(packetLength))
-            {
-                // Construct the entire packet:
-                // [length] (4 bytes)
-                // [UTF-8 XML-encoded property list message] (N bytes)
-                BinaryPrimitives.WriteInt32BigEndian(packet.Memory.Span[0..4], messageLength);
-
-                Encoding.UTF8.GetBytes(xml, packet.Memory.Span[4..(messageLength + 4)]);
-
-                // Send the packet
-                await this.Stream.WriteAsync(packet.Memory[0..packetLength], cancellationToken).ConfigureAwait(false);
-                await this.Stream.FlushAsync(cancellationToken).ConfigureAwait(false);
-            }
+            //Serialize the underlying message
+            return WriteMessageAsync(message.ToXmlPropertyList(), cancellationToken);
         }
 
         /// <summary>
@@ -142,34 +109,16 @@ namespace MobileDevices.iOS.PropertyLists
         {
             Verify.NotDisposed(this);
 
-            int length;
+            using var owner = await ReadPipeDataAsync(cancellationToken);
+            var dict = (NSDictionary)PropertyListParser.Parse(owner.Memory.Span[..owner.ValidLength]);
 
-            using (var lengthBuffer = this.MemoryPool.Rent(4))
+            if (Logger.IsEnabled(LogLevel.Trace))
             {
-                if (await this.Stream.ReadBlockAsync(lengthBuffer.Memory[0..4], cancellationToken).ConfigureAwait(false) != 4)
-                {
-                    return null;
-                }
-
-                length = BinaryPrimitives.ReadInt32BigEndian(lengthBuffer.Memory[0..4].Span);
+                Logger.LogTrace("Recieving data:\r\n{data}", dict.ToXmlPropertyList());
             }
 
-            using (var messageBuffer = this.MemoryPool.Rent(length))
-            {
-                if (await this.Stream.ReadBlockAsync(messageBuffer.Memory[0..length], cancellationToken).ConfigureAwait(false) != length)
-                {
-                    return null;
-                }
+            return dict;
 
-                var dict = (NSDictionary)PropertyListParser.Parse(messageBuffer.Memory[0..length].Span);
-
-                if (this.Logger.IsEnabled(LogLevel.Trace))
-                {
-                    this.Logger.LogTrace("Recieving data:\r\n{data}", dict.ToXmlPropertyList());
-                }
-
-                return dict;
-            }
         }
 
         /// <summary>
@@ -191,7 +140,7 @@ namespace MobileDevices.iOS.PropertyLists
             Verify.NotDisposed(this);
 
 
-            var dict = await this.ReadMessageAsync(cancellationToken);
+            var dict = await ReadMessageAsync(cancellationToken);
 
             if (dict == null)
             {

@@ -43,7 +43,7 @@ namespace MobileDevices.iOS.AfcServices
         {
             var protocol = await this.StartServiceAndConnectAsync(serviceName, startSession: true, cancellationToken);
 
-            return new AfcClient((AfcProtocol)protocol);
+            return new AfcClient((AfcProtocol)protocol,Logger);
         }
     }
 }

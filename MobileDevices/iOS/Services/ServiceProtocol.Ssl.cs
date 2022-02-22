@@ -19,7 +19,7 @@ namespace MobileDevices.iOS.Services
         /// <summary>
         /// Gets a value indicating whether the communication with the device is secured using SSL.
         /// </summary>
-        public virtual bool SslEnabled => this.stream != this.rawStream;
+        public virtual bool SslEnabled => _stream != _rawStream;
 
         /// <summary>
         /// Asynchronously enables SSL communications with the device.
@@ -42,7 +42,7 @@ namespace MobileDevices.iOS.Services
                 throw new ArgumentNullException(nameof(pairingRecord));
             }
 
-            if (this.stream is SslStream)
+            if (this._stream is SslStream)
             {
                 throw new InvalidOperationException("This connection is already using SSL");
             }
@@ -57,23 +57,19 @@ namespace MobileDevices.iOS.Services
             var encryptionPolicy = EncryptionPolicy.AllowNoEncryption;
 
             var sslStream = new SslStream(
-                innerStream: this.stream,
+                innerStream: _stream,
                 leaveInnerStreamOpen: true,
-                userCertificateSelectionCallback: (object sender, string targetHost, X509CertificateCollection localCertificates, X509Certificate remoteCertificate, string[] acceptableIssuers) =>
-                {
-                    return localCertificates[0];
-                },
-                userCertificateValidationCallback: (sender, certificate, chain, sslPolicyErrors) =>
+                userCertificateSelectionCallback: (_, _, localCertificates, _, _) => localCertificates[0],
+                userCertificateValidationCallback: (_, certificate, _, _) =>
                 {
                     var expectedDeviceCertHash = pairingRecord.DeviceCertificate.GetCertHashString();
-                    var actualDeviceCertHash = certificate.GetCertHashString();
+                    var actualDeviceCertHash = certificate?.GetCertHashString();
 
                     return string.Equals(expectedDeviceCertHash, actualDeviceCertHash, StringComparison.OrdinalIgnoreCase);
                 },
                 encryptionPolicy: encryptionPolicy);
 
-            var clientCertificates = new X509CertificateCollection();
-            clientCertificates.Add(pairingRecord.HostCertificate.CopyWithPrivateKeyForSsl(pairingRecord.HostPrivateKey));
+            var clientCertificates = new X509CertificateCollection { pairingRecord.HostCertificate.CopyWithPrivateKeyForSsl(pairingRecord.HostPrivateKey) };
 
             await sslStream.AuthenticateAsClientAsync(
                 pairingRecord.DeviceCertificate.Subject,
@@ -81,7 +77,7 @@ namespace MobileDevices.iOS.Services
                 SslProtocols.Tls12,
                 checkCertificateRevocation: false).ConfigureAwait(false);
 
-            this.Stream = sslStream;
+            Stream = sslStream;
         }
 
         /// <summary>
@@ -98,7 +94,7 @@ namespace MobileDevices.iOS.Services
         {
             Verify.NotDisposed(this);
 
-            var sslStream = this.stream as SslStream;
+            var sslStream = this._stream as SslStream;
 
             if (sslStream == null)
             {
@@ -118,7 +114,7 @@ namespace MobileDevices.iOS.Services
 
             await sslStream.DisposeAsync();
 
-            this.Stream = this.rawStream;
+            Stream = _rawStream;
         }
 
     }

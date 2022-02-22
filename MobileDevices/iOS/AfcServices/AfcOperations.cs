@@ -46,4 +46,38 @@
 		FileRefReadWithOffset = 0x00000027,   /* FileRefReadWithOffset */
 		FileRefWriteWithOffset = 0x00000028   /* FileRefWriteWithOffset */
 	}
+
+    /** Error Codes */
+    public enum AfcError
+    {
+        AfcSuccess = 0,
+        AfcUnknownError = 1,
+        AfcOpHeaderInvalid = 2,
+        AfcNoResources = 3,
+        AfcReadError = 4,
+        AfcWriteError = 5,
+        AfcUnknownPacketType = 6,
+        AfcInvalidArg = 7,
+        AfcObjectNotFound = 8,
+        AfcObjectIsDir = 9,
+        AfcPermDenied = 10,
+        AfcServiceNotConnected = 11,
+        AfcOpTimeout = 12,
+        AfcTooMuchData = 13,
+        AfcEndOfData = 14,
+        AfcOpNotSupported = 15,
+        AfcObjectExists = 16,
+        AfcObjectBusy = 17,
+        AfcNoSpaceLeft = 18,
+        AfcOpWouldBlock = 19,
+        AfcIoError = 20,
+        AfcOpInterrupted = 21,
+        AfcOpInProgress = 22,
+        AfcInternalError = 23,
+        AfcMuxError = 30,
+        AfcNoMem = 31,
+        AfcNotEnoughData = 32,
+        AfcDirNotEmpty = 33,
+        AfcForceSignedType = -1
+    }
 }

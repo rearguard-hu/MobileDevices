@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Text;
@@ -7,21 +6,20 @@ using System.Threading;
 using System.Threading.Tasks;
 using Claunia.PropertyList;
 using Microsoft.Extensions.Logging;
-using MobileDevices.iOS.PropertyLists;
 
 namespace MobileDevices.iOS.AfcServices
 {
-    public class AfcClient : IAsyncDisposable
+    public class AfcClient : IAsyncDisposable, IDisposable
     {
         /// <summary>
         /// Gets the name of the afc service running on the device.
         /// </summary>
         public const string ServiceName = "com.apple.afc";
 
-        private readonly AfcProtocol protocol;
+        private readonly AfcProtocol _protocol;
 
+        private readonly ILogger _logger;
 
-        private readonly MemoryPool<byte> memoryPool = MemoryPool<byte>.Shared;
         /// <summary>
         /// Initializes a new instance of the <see cref="AfcClient"/> class.
         /// </summary>
@@ -33,18 +31,31 @@ namespace MobileDevices.iOS.AfcServices
         /// </param>
         public AfcClient(Stream stream, ILogger<AfcClient> logger)
         {
-            this.protocol = new AfcProtocol(stream, ownsStream: true, logger: logger);
+            this._protocol = new AfcProtocol(stream, ownsStream: true, logger: logger);
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="AfcClient"/> class.
         /// </summary>
         /// <param name="protocol">
-        /// A <see cref="PropertyListProtocol"/> which represents a connection to the afc service running on the device.
+        /// A <see cref="AfcProtocol"/> which represents a connection to the afc service running on the device.
         /// </param>
         public AfcClient(AfcProtocol protocol)
         {
-            this.protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
+            this._protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AfcClient"/> class.
+        /// </summary>
+        /// <param name="protocol">
+        /// A <see cref="AfcProtocol"/> which represents a connection to the afc service running on the device.
+        /// </param>
+        /// <param name="logger"></param>
+        public AfcClient(AfcProtocol protocol, ILogger logger)
+        {
+            _logger = logger;
+            this._protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
         }
 
 
@@ -59,15 +70,35 @@ namespace MobileDevices.iOS.AfcServices
                 AfcOperation = AfcOperations.ReadDir
             };
 
+            if (!await _protocol.WriteMessageAsync(request, token)) return Array.Empty<string>();
 
-            if (!await protocol.WriteDataAsync(request, token)) return Array.Empty<string>();
+            var (owner, packetHeader) = await _protocol.ReceiveDataAsync(token);
+            using (owner)
+            {
+                var memory = owner.Memory;
+                var check = CheckOperationTypes(memory.Span, packetHeader);
 
+                if (check != AfcError.AfcSuccess) return default;
+                var list = Encoding.UTF8.GetString(memory.Span.Slice(0, owner.ValidLength)).Split("\0", StringSplitOptions.RemoveEmptyEntries);
+                return list;
 
-            var rt = await protocol.ReceiveDataAsync(token);
+            }
+        }
 
-            var list = Encoding.ASCII.GetString(rt.Span).Split("\0", StringSplitOptions.RemoveEmptyEntries);
+        private AfcError CheckOperationTypes(Span<byte> memory, AfcPacketHeard afcPacket)
+        {
+            if (afcPacket.Operation == AfcOperations.Status)
+            {
+                var result = (AfcError)BinaryPrimitives.ReadUInt64LittleEndian(memory);
+                if (result != AfcError.AfcSuccess)
+                {
+                    _logger.LogError("got a status response, code {message}", result.ToString());
+                }
 
-            return list;
+                return result;
+            }
+
+            return AfcError.AfcSuccess;
         }
 
         public async Task<NSDictionary> GetFileInfoAsync(string path, CancellationToken token)
@@ -78,17 +109,19 @@ namespace MobileDevices.iOS.AfcServices
                 AfcOperation = AfcOperations.GetFileInfo
             };
 
-            if (!await protocol.WriteDataAsync(request, token)) return new NSDictionary();
+            if (!await _protocol.WriteMessageAsync(request, token)) return new NSDictionary();
 
-
-            var result = await protocol.ReceiveDataAsync(token);
-
-            return GetNsDictionary(result.ToArray());
+            var (owner, packetHeader) = await _protocol.ReceiveDataAsync(token);
+            using (owner)
+            {
+                var dic = GetNsDictionary(owner.Memory.Span.Slice(0, owner.ValidLength));
+                return dic;
+            }
         }
 
-        public NSDictionary GetNsDictionary(byte[] data)
+        public NSDictionary GetNsDictionary(Span<byte> data)
         {
-            var list = Encoding.ASCII.GetString(data).Split("\0", StringSplitOptions.RemoveEmptyEntries);
+            var list = Encoding.UTF8.GetString(data).Split("\0", StringSplitOptions.RemoveEmptyEntries);
             var dict = new NSDictionary();
 
             if (list.Length < 2)
@@ -109,13 +142,18 @@ namespace MobileDevices.iOS.AfcServices
                 AfcOperation = AfcOperations.FileRefOpen
             };
 
-            if (!await protocol.WriteDataAsync(request, token)) return 0;
+            if (!await _protocol.WriteMessageAsync(request, token)) return 0;
+            var (owner, packetHeader) = await _protocol.ReceiveDataAsync(token);
+            using (owner)
+            {
+                if (packetHeader.Operation != AfcOperations.FileRefOpenResult)
+                {
+                    _logger.LogError("Did not get a file handle response");
+                }
+                var result = BinaryPrimitives.ReadUInt64LittleEndian(owner.Memory.Span.Slice(0, owner.ValidLength));
+                return result;
+            }
 
-
-            var rt = await protocol.ReceiveDataAsync(token);
-            var result = BinaryPrimitives.ReadUInt64LittleEndian(rt.Span);
-
-            return result;
         }
 
         public async Task<ulong> FileCloseAsync(ulong handle, CancellationToken token)
@@ -126,64 +164,57 @@ namespace MobileDevices.iOS.AfcServices
                 AfcOperation = AfcOperations.FileRefClose
             };
 
-            if (!await protocol.WriteDataAsync(request, token)) return 0;
+            if (!await _protocol.WriteMessageAsync(request, token)) return 0;
 
-            var rt = await protocol.ReceiveDataAsync(token);
-            var result = BinaryPrimitives.ReadUInt64LittleEndian(rt.Span);
-
-            return result;
+            var (owner, packetHeader) = await _protocol.ReceiveDataAsync(token);
+            using (owner)
+            {
+                var result = BinaryPrimitives.ReadUInt64LittleEndian(owner.Memory.Span);
+                return result;
+            }
         }
 
         public async Task<bool> FileWriteAsync(ulong handle, ReadOnlyMemory<byte> data, int length, CancellationToken token)
         {
-            var offset = 0;
             ulong result = 1;
 
             var request = new AfcRequest
             {
                 FileHandle = handle,
-                AfcOperation = AfcOperations.FileRefWrite
+                AfcOperation = AfcOperations.FileRefWrite,
+                FileData = data
             };
 
-            while (length > 0 && !token.IsCancellationRequested)
+            if (!await _protocol.WriteMessageAsync(request, token)) return false;
+
+            var (owner, packetHeader) = await _protocol.ReceiveDataAsync(token);
+            using (owner)
             {
-                var len = length;
-                var tempSend = data.Slice(offset, len);
 
-                request.FileData = tempSend;
-
-                if (!await protocol.WriteDataAsync(request, token)) return false;
-
-
-                var rt = await protocol.ReceiveDataAsync(token);
-                result = BinaryPrimitives.ReadUInt64LittleEndian(rt.ToArray());
-
-                length -= len;
-                offset += len;
+                result = BinaryPrimitives.ReadUInt64LittleEndian(owner.Memory.Span);
+                return result == 0;
             }
-
-            return result == 0;
 
         }
 
         public async Task<bool> MakeDirectoryAsync(string path, CancellationToken token)
         {
-            var dataLength = path.Length;
-            var packet = Encoding.UTF8.GetBytes(path);
-
+            ulong result = 1;
             var request = new AfcRequest
             {
                 FilePath = path,
                 AfcOperation = AfcOperations.MakeDir
             };
 
-            if (!await protocol.WriteDataAsync(request, token)) return false;
+            if (!await _protocol.WriteMessageAsync(request, token)) return false;
 
-            var result = await protocol.ReceiveDataAsync(token);
+            var (owner, packetHeader) = await _protocol.ReceiveDataAsync(token);
+            using (owner)
+            {
 
-            var rt = BinaryPrimitives.ReadUInt64LittleEndian(result.Span);
-
-            return true;
+                result = BinaryPrimitives.ReadUInt64LittleEndian(owner.Memory.Span);
+                return result == 0;
+            }
         }
 
 
@@ -193,7 +224,12 @@ namespace MobileDevices.iOS.AfcServices
         {
             this.IsDisposed = true;
 
-            return protocol?.DisposeAsync() ?? ValueTask.CompletedTask;
+            return _protocol?.DisposeAsync() ?? ValueTask.CompletedTask;
+        }
+
+        public void Dispose()
+        {
+            throw new NotImplementedException();
         }
     }
 }

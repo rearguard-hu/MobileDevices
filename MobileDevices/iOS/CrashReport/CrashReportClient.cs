@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,12 +37,12 @@ namespace MobileDevices.iOS.CrashReport
             var num = 0;
             while (!token.IsCancellationRequested)
             {
-
-                var buffer = await protocol.ReceiveRawDataAsync(token);
+                using var packetOwner = await protocol.ReceiveRawDataAsync(token);
+                var buffer = packetOwner.Memory;
 
                 var result = Encoding.UTF8.GetString(buffer.Span);
 
-                if (!result.TrimEnd('\0').Equals("ping")|| num>=3)
+                if (!result.TrimEnd('\0').Equals("ping")|| num>=10)
                     break;
 
                 num++;
@@ -53,7 +52,7 @@ namespace MobileDevices.iOS.CrashReport
         /// <inheritdoc/>
         public ValueTask DisposeAsync()
         {
-            return this.protocol.DisposeAsync();
+            return protocol.DisposeAsync();
         }
     }
 }
