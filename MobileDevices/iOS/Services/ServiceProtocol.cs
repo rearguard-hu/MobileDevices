@@ -193,11 +193,14 @@ namespace MobileDevices.iOS.Services
                         if (rt) break;
                     }
 
+                    if (buffer.Length <= 0 || readLength > 0)
+                    {
+                        Input.AdvanceTo(buffer.Start);
+                        break;
+                    }
+
                     Input.AdvanceTo(buffer.Start, buffer.End);
                     if (result.IsCompleted)
-                        break;
-
-                    if (buffer.Length <= 0 || readLength > 0)
                         break;
 
                 }
