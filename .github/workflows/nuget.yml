@@ -15,10 +15,10 @@ jobs:
     # 1.Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - uses: actions/checkout@v2
     # 2.runtime environment
-    - name: Setup .NET Core
+    - name: Setup .NET
       uses: actions/setup-dotnet@v1
       with:
-        dotnet-version: 3.1.100
+        dotnet-version: 5.0.x
     # 3.build
     - name: Build with dotnet
       run: dotnet build --configuration Release
