@@ -18,7 +18,7 @@ namespace MobileDevices.iOS.Lockdown
 
             if (data.ContainsKey(nameof(this.Value)))
             {
-                this.Value = (T)data.Get(nameof(this.Value)).ToObject();
+                this.Value = (T)data.Get(nameof(this.Value))?.ToObject();
             }
         }
     }

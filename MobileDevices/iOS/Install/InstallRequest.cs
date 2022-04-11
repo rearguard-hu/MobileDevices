@@ -1,8 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Claunia.PropertyList;
-using MobileDevices.iOS.DiagnosticsRelay;
+﻿using Claunia.PropertyList;
 using MobileDevices.iOS.PropertyLists;
 
 namespace MobileDevices.iOS.Install
@@ -14,21 +10,19 @@ namespace MobileDevices.iOS.Install
     {
         public string Command { get; set; }
 
-        public NSObject ClientOptions { get; set; }
+        public InstallOption ClientOptions { get; set; }
 
         public string PackagePath { get; set; }
 
         public string ApplicationIdentifier { get; set; }
 
-        public NSObject Capabilities { get; set; }
-
-        public NSArray BundleIDs { get; set; }
+        public object Capabilities { get; set; }
 
         public NSDictionary ToDictionary()
         {
             var dict = new NSDictionary { { nameof(Command), Command } };
 
-            dict.AddWhenNotNull(nameof(ClientOptions), ClientOptions);
+            dict.AddWhenNotNull(nameof(ClientOptions), ClientOptions.ToDictionary());
             dict.AddWhenNotNull(nameof(PackagePath), PackagePath);
             dict.AddWhenNotNull(nameof(ApplicationIdentifier), ApplicationIdentifier);
             dict.AddWhenNotNull(nameof(Capabilities), Capabilities);

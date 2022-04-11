@@ -11,14 +11,12 @@ namespace MobileDevices.iOS.Lockdown
         /// <summary>
         /// Gets or sets a label which defines the client program.
         /// </summary>
-        public string Label
-        { get; set; } = "MobileDevices";//ThisAssembly.AssemblyName;
+        public string Label { get; set; } = "MobileDevices";
 
         /// <summary>
         /// Gets or sets the protocol version being used.
         /// </summary>
-        public string ProtocolVersion
-        { get; set; } = "2";
+        public string ProtocolVersion { get; set; } = "2";
 
         /// <summary>
         /// Gets or sets the name of the request.

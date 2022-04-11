@@ -59,7 +59,7 @@ namespace MobileDevices.iOS.Lockdown
 
             this.EnsureSuccess(response);
 
-            return response.Value;
+            return response == null ? default : response.Value;
         }
 
         /// <summary>

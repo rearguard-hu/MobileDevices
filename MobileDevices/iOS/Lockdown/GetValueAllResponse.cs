@@ -2,7 +2,7 @@
 
 namespace MobileDevices.iOS.Lockdown
 {
-    public class GetValueAll : LockdownResponse
+    public class GetValueAllResponse : LockdownResponse
     {
         public NSDictionary Value;
 

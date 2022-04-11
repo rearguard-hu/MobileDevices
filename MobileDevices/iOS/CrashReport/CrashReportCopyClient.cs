@@ -34,6 +34,12 @@ namespace MobileDevices.iOS.CrashReport
             return this.afcClient.DisposeAsync();
         }
 
+        public async Task<string[]> GetDirectoryInfoAsync(CancellationToken cancellationToken)
+        {
+            var list = await afcClient.ReadDirectoryAsync(".", cancellationToken);
+            return list;
+        }
+
         public async Task<Dictionary<string, object>> NumberStatisticalReportsAsync(CancellationToken cancellationToken)
         {
             var list = await afcClient.ReadDirectoryAsync(".", cancellationToken);

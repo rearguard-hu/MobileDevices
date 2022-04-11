@@ -46,7 +46,7 @@ namespace MobileDevices.iOS.Install
             this.protocol = protocol ?? throw new ArgumentNullException(nameof(protocol));
         }
 
-        public Task InstallAsync(string packagePath, NSDictionary options, CancellationToken token)
+        public Task InstallAsync(string packagePath, InstallOption options, CancellationToken token)
         {
             return this.protocol.WriteMessageAsync(
                 new InstallRequest() {
@@ -58,7 +58,7 @@ namespace MobileDevices.iOS.Install
 
         }
 
-        public virtual Task UpgradeAsync(string packagePath, NSDictionary options, CancellationToken token)
+        public virtual Task UpgradeAsync(string packagePath, InstallOption options, CancellationToken token)
         {
             return this.protocol.WriteMessageAsync(
                 new InstallRequest()
@@ -70,7 +70,7 @@ namespace MobileDevices.iOS.Install
                 token);
         }
 
-        public virtual Task UninstallAsync(string appId, NSDictionary options, CancellationToken token)
+        public virtual Task UninstallAsync(string appId, InstallOption options, CancellationToken token)
         {
             return this.protocol.WriteMessageAsync(
                 new InstallRequest()
@@ -82,13 +82,10 @@ namespace MobileDevices.iOS.Install
                 token);
         }
 
-        public virtual Task<NSDictionary> LookUpAsync(CancellationToken token, NSDictionary options, params string[] appIds)
+        public virtual Task<NSDictionary> LookUpAsync(CancellationToken token, InstallOption options, params string[] appIds)
         {
-            options ??= new NSDictionary();
-
-            var bundleIDs = NSObject.Wrap(appIds);
-
-            options.Add("BundleIDs", bundleIDs);
+            options ??= new InstallOption();
+            options.BundleIDs = appIds;
 
             return ExecuteRequestAsync(
                 new InstallRequest()
@@ -99,28 +96,40 @@ namespace MobileDevices.iOS.Install
                 token);
         }
 
-        public async Task InstallCallbackAsync(Action<InstallResponse> action, CancellationToken token)
+        public async Task<bool> InstallCallbackAsync(Action<InstallResponse> action, CancellationToken token)
         {
 
             while (!token.IsCancellationRequested)
             {
-                var dict=await protocol.ReadMessageAsync(token);
-
-                if (dict == null || dict.IsEmpty) return;
-
-
-                var installProgress = new InstallResponse();
-                installProgress.FromDictionary(dict);
-
-                action?.Invoke(installProgress);
-
-                if (string.IsNullOrEmpty(installProgress.Status)||
-                    installProgress.Status.Equals("Complete") || 
-                    !string.IsNullOrEmpty(installProgress.Error))
+                try
                 {
-                    return;
+                    var dict = await protocol.ReadMessageAsync(token);
+
+                    if (dict == null || dict.IsEmpty) return false;
+
+
+                    var installProgress = new InstallResponse();
+                    installProgress.FromDictionary(dict);
+
+                    action?.Invoke(installProgress);
+
+                    if (string.IsNullOrEmpty(installProgress.Status) ||
+                        installProgress.Status.Equals("Complete"))
+                    {
+                        return true;
+                    }
+
+                    if (!string.IsNullOrEmpty(installProgress.Error))
+                    {
+                        return false;
+                    }
+                }
+                catch (Exception)
+                {
+                    return false;
                 }
             }
+            return false;
         }
 
 

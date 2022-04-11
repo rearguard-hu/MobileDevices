@@ -35,7 +35,7 @@ namespace MobileDevices.Tests.Install
         }
 
         /// <summary>
-        /// Tests the <see cref="InstallClient.InstallAsync(string,NSDictionary,CancellationToken)"/> method.
+        /// Tests the <see cref="InstallClient.InstallAsync(string,InstallOption,CancellationToken)"/> method.
         /// </summary>
         /// <returns>
         /// A <see cref="Task"/> which represents the asynchronous test.
@@ -43,7 +43,7 @@ namespace MobileDevices.Tests.Install
         [Fact]
         public async Task InstallAsync_Works_Async()
         {
-            var options = new NSDictionary();
+            var options = new InstallOption();
             var packagePath = "1234";
 
             var protocol = new Mock<PropertyListProtocol>();
@@ -68,7 +68,7 @@ namespace MobileDevices.Tests.Install
         }
 
         /// <summary>
-        /// Tests the <see cref="InstallClient.UpgradeAsync(string,NSDictionary,CancellationToken)"/> method.
+        /// Tests the <see cref="InstallClient.UpgradeAsync(string,InstallOption,CancellationToken)"/> method.
         /// </summary>
         /// <returns>
         /// A <see cref="Task"/> which represents the asynchronous test.
@@ -76,7 +76,7 @@ namespace MobileDevices.Tests.Install
         [Fact]
         public async Task UpgradeAsync_Works_Async()
         {
-            var options = new NSDictionary();
+            var options = new InstallOption();
             var packagePath = "1234";
 
             var protocol = new Mock<PropertyListProtocol>();
@@ -101,7 +101,7 @@ namespace MobileDevices.Tests.Install
         }
 
         /// <summary>
-        /// Tests the <see cref="InstallClient.UninstallAsync(string,NSDictionary,CancellationToken)"/> method.
+        /// Tests the <see cref="InstallClient.UninstallAsync(string,InstallOption,CancellationToken)"/> method.
         /// </summary>
         /// <returns>
         /// A <see cref="Task"/> which represents the asynchronous test.
@@ -109,7 +109,7 @@ namespace MobileDevices.Tests.Install
         [Fact]
         public async Task UninstallAsync_Works_Async()
         {
-            var options = new NSDictionary();
+            var options = new InstallOption();
             var applicationIdentifier = "1234.cn";
 
             var protocol = new Mock<PropertyListProtocol>();
@@ -134,7 +134,7 @@ namespace MobileDevices.Tests.Install
         }
 
         /// <summary>
-        /// Tests the <see cref="InstallClient.LookUpAsync(CancellationToken,NSDictionary,string[])"/> method.
+        /// Tests the <see cref="InstallClient.LookUpAsync(CancellationToken,InstallOption,string[])"/> method.
         /// </summary>
         /// <returns>
         /// A <see cref="Task"/> which represents the asynchronous test.
@@ -142,7 +142,7 @@ namespace MobileDevices.Tests.Install
         [Fact]
         public async Task LookUpAsync_Works_Async()
         {
-            var options = new NSDictionary();
+            var options = new InstallOption();
             var applicationIdentifier = "1234.cn";
             var result = new NSDictionary { { "Status", new NSString("Success") } };
 
@@ -157,7 +157,7 @@ namespace MobileDevices.Tests.Install
                     var request = Assert.IsType<InstallRequest>(pl);
                     Assert.Equal("Lookup", request.Command);
                     Assert.Equal(options, request.ClientOptions);
-                    Assert.Equal(((NSDictionary)request.ClientOptions).GetStringArray("BundleIDs")[0], applicationIdentifier);
+                    Assert.Equal(request.ClientOptions.BundleIDs[0], applicationIdentifier);
 
                 })
                 .Returns(Task.CompletedTask);
@@ -172,7 +172,7 @@ namespace MobileDevices.Tests.Install
         }
 
         /// <summary>
-        /// Tests the <see cref="InstallClient.LookUpAsync(CancellationToken,NSDictionary,string[])"/> method.
+        /// Tests the <see cref="InstallClient.LookUpAsync(CancellationToken,InstallOption,string[])"/> method.
         /// </summary>
         /// <returns>
         /// A <see cref="Task"/> which represents the asynchronous test.
@@ -193,8 +193,8 @@ namespace MobileDevices.Tests.Install
                 {
                     var request = Assert.IsType<InstallRequest>(pl);
                     Assert.Equal("Lookup", request.Command);
-                    Assert.True(((NSDictionary)request.ClientOptions).Count > 0);
-                    Assert.Equal(((NSDictionary)request.ClientOptions).GetStringArray("BundleIDs")[0], applicationIdentifier);
+                    Assert.True(request.ClientOptions.BundleIDs.Any());
+                    Assert.Equal(request.ClientOptions.BundleIDs[0], applicationIdentifier);
                 })
                 .Returns(Task.CompletedTask);
 

@@ -37,7 +37,10 @@ namespace MobileDevices.iOS.CrashReport
             var num = 0;
             while (!token.IsCancellationRequested)
             {
-                using var packetOwner = await protocol.ReceiveRawDataAsync(token);
+                var source = CancellationTokenSource.CreateLinkedTokenSource(token);
+                source.CancelAfter(2000);
+
+                using var packetOwner = await protocol.ReceiveRawDataAsync(source.Token);
                 var buffer = packetOwner.Memory;
 
                 var result = Encoding.UTF8.GetString(buffer.Span);

@@ -28,11 +28,11 @@ namespace MobileDevices.iOS.Activation
 
         public DeviceContext Context;
 
-        public DeviceActivation(ClientFactory<LockdownClient> lockDownClientFactory, DeviceContext context)
+        public DeviceActivation(ClientFactory<LockdownClient> lockDownClientFactory, DeviceContext context, IHttpClientFactory httpClientFactory)
         {
             this.factory = lockDownClientFactory ?? throw new ArgumentNullException(nameof(lockDownClientFactory));
             this.Context = context;
-            httpClient = new HttpClient();
+            httpClient = httpClientFactory.CreateClient(string.Empty);
         }
 
         public void ActivationParseRawResponse(DeviceActivationResponse response)
@@ -108,7 +108,7 @@ namespace MobileDevices.iOS.Activation
             else
             {
 
-                var activationNode = plist.GetDict("iphone-activation") ?? plist.GetDict("iphone-activation");
+                var activationNode = plist.GetDict("iphone-activation") ?? plist.GetDict("device-activation");
                 if (activationNode is null)
                     return false;
                 // activationNode ?? NULL
@@ -352,7 +352,7 @@ namespace MobileDevices.iOS.Activation
             await using var lockDown = await this.factory.CreateAsync(cancellationToken);
             var session = await lockDown.StartSessionAsync(Context.PairingRecord, cancellationToken).ConfigureAwait(false);
 
-            var value = await lockDown.GetValueAsync<GetValueAll>(null, null, cancellationToken);
+            var value = await lockDown.GetValueAsync<GetValueAllResponse>(null, null, cancellationToken);
             var info = value.Value;
             var fields = new NSDictionary
             {
@@ -372,7 +372,7 @@ namespace MobileDevices.iOS.Activation
             }
 
 
-            var activationInfo = await lockDown.GetValueAsync<GetValueAll>(null, "ActivationInfo", cancellationToken);
+            var activationInfo = await lockDown.GetValueAsync<GetValueAllResponse>(null, "ActivationInfo", cancellationToken);
 
             var activationValue = activationInfo.Value;
             if (activationValue is null)
