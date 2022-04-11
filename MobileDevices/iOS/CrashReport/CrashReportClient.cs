@@ -43,7 +43,7 @@ namespace MobileDevices.iOS.CrashReport
                 using var packetOwner = await protocol.ReceiveRawDataAsync(source.Token);
                 var buffer = packetOwner.Memory;
 
-                var result = Encoding.UTF8.GetString(buffer.Span);
+                var result = Encoding.UTF8.GetString(buffer.Span[..packetOwner.ValidLength]);
 
                 if (!result.TrimEnd('\0').Equals("ping")|| num>=10)
                     break;
