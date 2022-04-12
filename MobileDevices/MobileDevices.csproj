@@ -2,6 +2,15 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+	<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+	<Version>1.0.0</Version>
+	<Authors>rearguard-hu</Authors>
+	<RepositoryUrl>https://github.com/rearguard-hu/MobileDevices.git</RepositoryUrl>
+	<PackageProjectUrl>https://github.com/rearguard-hu/MobileDevices</PackageProjectUrl>
+	<PackageIconUrl></PackageIconUrl>
+	<RepositoryType>git</RepositoryType>
+	<Description>A library to communicate with services on iOS devices using native protocols.</Description>
+	<LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
