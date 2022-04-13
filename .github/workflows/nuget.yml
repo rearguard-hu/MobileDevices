@@ -23,7 +23,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build with dotnet
-      run: dotnet pack --configuration Release
+      run: dotnet build --no-restore
     # 4.Install Nuget
     - name: Install Nuget
       run: |
