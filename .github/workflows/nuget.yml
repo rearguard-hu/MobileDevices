@@ -20,6 +20,8 @@ jobs:
       with:
         dotnet-version: 5.0.x
     # 3.build
+    - name: Restore dependencies
+      run: dotnet restore
     - name: Build with dotnet
       run: dotnet pack --configuration Release
     # 4.Install Nuget
