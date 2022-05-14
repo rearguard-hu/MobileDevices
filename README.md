@@ -1,4 +1,4 @@
-﻿# MobileDevices
+# MobileDevices
 使用本机协议与 iOS 设备上的服务进行通信的库。
 
 ## Features
@@ -12,15 +12,32 @@ MobileDevices 是一个 .NET 库，它允许您使用 .NET 语言（例如 C# �
 * 检索崩溃报告
 * 检索各种诊断信息
 * 转发设备通知
+## Installing
+你可以将 MobileDevices 安装为[NuGet package](https://www.nuget.org/packages/MobileDevices)
+
+```
+PM> Install-Package MobileDevices 
+```
 ## Getting Started
 MobileDevices 不直接与您的 iOS 设备通信，而是通过**Apple Mobile Device Service**服务进程作为中间件。在连接到 iOS 设备之前，您必须先启动**Apple Mobile Device Service**服务。
 如果您想要在**Linux**中运行使用**MobileDevices**构建的程序请先在其中运行一个套接字守护进程，用于在iOS设备之间多路传输连接。关于如何构建套接字守护程序请参考 [usbmuxd](https://github.com/libimobiledevice/usbmuxd) 进行构建。
 当然在Windows下您亦可不使用**Apple Mobile Device Service**服务，而参考于 [usbmuxd](https://github.com/libimobiledevice/usbmuxd) 构建Windows下与iOS 设备通信通信的套接字守护进程。进而使用**MobileDevices**操作设备。
+### Using the library
+在使用这个库前你需要
+```c#
+using MobileDevices.iOS.DependencyInjection;
+
+public void ConfigureServices(IServiceCollection services)
+ {
+        services.AddAppleServices();
+ }
+
+```
 ### Listing all iOS devices
 以下代码段列出了当前连接到您 PC 的所有iOS设备：
 ```c#
-        public async Task ExecuteAsync(CancellationToken cancellationToken)
-        {
+public async Task ExecuteAsync(CancellationToken cancellationToken)
+{
             var devices = await 
 _muxerClient.ListDevicesAsync(cancellationToken).ConfigureAwait(false);
             foreach (var device in devices)
@@ -57,10 +74,9 @@ cancellationToken).ConfigureAwait(false);
 
 非常欢迎您的指导与参与！
 ## Links
-* Repository (Mirror): https://github.com/rearguard-hu/MobileDevices.git
-* Issue Tracker: https://github.com/rearguard-hu/MobileDevices/issues
+* Repository (Mirror): https://github.com/hu766514308/MobileDevices.git
+* Issue Tracker: https://https://github.com/hu766514308/MobileDevices/issues
 ## Credits
 Apple、iPhone、iPad、iPod、iPod Touch、Apple TV、Apple Watch、Mac、iOS、iPadOS、tvOS、watchOS 和 macOS 是 Apple Inc. 的商标。
 
 本项目为独立软件，未经 Apple Inc. 授权、赞助或以其他方式批准。
-
