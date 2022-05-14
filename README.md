@@ -37,14 +37,13 @@ public void ConfigureServices(IServiceCollection services)
 以下代码段列出了当前连接到您 PC 的所有iOS设备：
 ```c#
 public async Task ExecuteAsync(CancellationToken cancellationToken)
-{
-            var devices = await 
-_muxerClient.ListDevicesAsync(cancellationToken).ConfigureAwait(false);
+        {
+            var devices = await _muxerClient.ListDevicesAsync(cancellationToken).ConfigureAwait(false);
             foreach (var device in devices)
             {
-                var pairingRecord = await 
-_pairingRecordProvisioner.ProvisionPairingRecordAsync(device.Udid, 
-cancellationToken).ConfigureAwait(false);
+                var pairingRecord = await _pairingRecordProvisioner
+                    .ProvisionPairingRecordAsync(device.Udid, cancellationToken)
+                    .ConfigureAwait(false);
             }
         }
 ```
