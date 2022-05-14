@@ -1,6 +1,8 @@
 # MobileDevices
 使用本机协议与 iOS 设备上的服务进行通信的库。
-
+| Build | NuGet |
+|--|--|
+![](https://github.com/rearguard-hu/MobileDevices/actions/workflows/dotnet.yml/badge.svg)|[![](https://img.shields.io/nuget/v/MobileDevices.svg)](https://www.nuget.org/packages/MobileDevices)|
 ## Features
 MobileDevices 是一个 .NET 库，它允许您使用 .NET 语言（例如 C# 或 Visual Basic）与 Windows、macOS 和 Linux 上的 iOS 设备进行交互。它借鉴于 libimobiledevice 库。
 
